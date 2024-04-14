@@ -57,6 +57,15 @@ extern md_ntsc_t *md_ntsc;
 extern sms_ntsc_t *sms_ntsc;
 
 
+/* BizHawk Layer Toggle */
+extern int cinterface_render_bga;
+extern int cinterface_render_bgb;
+extern int cinterface_render_bgw;
+extern int cinterface_render_obj;
+extern uint8 cinterface_custom_backdrop;
+extern uint32 cinterface_custom_backdrop_color;
+
+
 /* Output pixels type*/
 #if defined(USE_8BPP_RENDERING)
 #define PIXEL_OUT_T uint8
@@ -419,12 +428,15 @@ INLINE void WRITE_LONG(void *address, uint32 data)
 #endif /* ALT_RENDERER */
 
 #define DRAW_SPRITE_TILE(WIDTH,ATTR,TABLE)  \
+  if (!cinterface_render_obj) return; \
   for (i=0;i<WIDTH;i++) \
   { \
     temp = *src++; \
     if (temp & 0x0f) \
     { \
       temp |= (lb[i] << 8); \
+      if (config.sprites_always_on_top) \
+        ATTR |= 0b01000000; \
       lb[i] = TABLE[temp | ATTR]; \
       status |= ((temp & 0x8000) >> 10); \
     } \
@@ -562,7 +574,7 @@ static const uint32 tms_palette[16] =
 #endif
 
 /* Cached and flipped patterns */
-static uint8 ALIGNED_(4) bg_pattern_cache[0x80000];
+/*static*/ uint8 ALIGNED_(4) bg_pattern_cache[0x80000];
 
 /* Sprite pattern name offset look-up table (Mode 5) */
 static uint8 name_lut[0x400];
@@ -574,7 +586,7 @@ static uint32 bp_lut[0x10000];
 static uint8 lut[LUT_MAX][LUT_SIZE];
 
 /* Output pixel data look-up tables*/
-static PIXEL_OUT_T pixel[0x100];
+/*static*/ PIXEL_OUT_T pixel[0x100];
 static PIXEL_OUT_T pixel_lut[3][0x200];
 static PIXEL_OUT_T pixel_lut_m4[0x40];
 
@@ -1129,6 +1141,12 @@ void color_update_m5(int index, unsigned int data)
     data &= 0x49;
   }
 
+  if (index == 0 && cinterface_custom_backdrop)
+  {
+    pixel[0x00] = pixel[0x40] = pixel[0x80] = cinterface_custom_backdrop_color;
+    return;
+  }
+
   if(reg[12] & 0x08)
   {
     /* Mode 5 (Shadow/Normal/Highlight) */
@@ -1559,6 +1577,12 @@ void render_bg_m5(int line)
   uint32 v_line = (line + yscroll) & pf_row_mask;
 #endif
 
+  if (!cinterface_render_bgb)
+  {
+    memset(&linebuf[0][0], 0, 512);
+    goto end_render_bgb;
+  }
+
   /* Plane B name table */
   uint32 *nt = (uint32 *)&vram[ntbb + (((v_line >> 3) << pf_shift) & 0x1FC0)];
 
@@ -1585,6 +1609,8 @@ void render_bg_m5(int line)
     DRAW_COLUMN(atbuf, v_line)
   }
 
+end_render_bgb:
+
   if (w == (line >= a))
   {
     /* Window takes up entire line */
@@ -1599,7 +1625,11 @@ void render_bg_m5(int line)
   }
 
   /* Plane A */
-  if (a)
+  if (!cinterface_render_bga)
+  {
+    memset(&linebuf[1][0], 0, 512);
+  }
+  else if (a)
   {
     /* Plane A width */
     start = clip[0].left;
@@ -1657,7 +1687,7 @@ void render_bg_m5(int line)
   }
 
   /* Window */
-  if (w)
+  if (w && cinterface_render_bgw)
   {
     /* Window name table */
     nt = (uint32 *)&vram[ntwb | ((line >> 3) << (6 + (reg[12] & 1)))];
@@ -1719,6 +1749,12 @@ void render_bg_m5_vs(int line)
     yscroll = vs[19] & (vs[19] >> 16);
   }
 
+  if (!cinterface_render_bgb)
+  {
+    memset(&linebuf[0][0], 0, 512);
+    goto end_render_bgb;
+  }
+
   if(shift)
   {
     /* Plane B vertical scroll */
@@ -1761,6 +1797,8 @@ void render_bg_m5_vs(int line)
     DRAW_COLUMN(atbuf, v_line)
   }
 
+end_render_bgb:
+
   if (w == (line >= a))
   {
     /* Window takes up entire line */
@@ -1775,7 +1813,11 @@ void render_bg_m5_vs(int line)
   }
 
   /* Plane A */
-  if (a)
+  if (!cinterface_render_bga)
+  {
+    memset(&linebuf[1][0], 0, 512);
+  }
+  else if (a)
   {
     /* Plane A width */
     start = clip[0].left;
@@ -1847,7 +1889,7 @@ void render_bg_m5_vs(int line)
   }
 
   /* Window */
-  if (w)
+  if (w && cinterface_render_bgw)
   {
     /* Window name table */
     nt = (uint32 *)&vram[ntwb | ((line >> 3) << (6 + (reg[12] & 1)))];
@@ -2190,6 +2232,12 @@ void render_bg_m5_im2(int line)
   uint32 v_line = (line + (yscroll >> 1)) & pf_row_mask;
 #endif
 
+  if (!cinterface_render_bgb)
+  {
+    memset(&linebuf[0][0], 0, 512);
+    goto end_render_bgb;
+  }
+
   /* Plane B name table */
   uint32 *nt = (uint32 *)&vram[ntbb + (((v_line >> 3) << pf_shift) & 0x1FC0)];
 
@@ -2216,6 +2264,8 @@ void render_bg_m5_im2(int line)
     DRAW_COLUMN_IM2(atbuf, v_line)
   }
 
+end_render_bgb:
+
   if (w == (line >= a))
   {
     /* Window takes up entire line */
@@ -2230,7 +2280,11 @@ void render_bg_m5_im2(int line)
   }
 
   /* Plane A */
-  if (a)
+  if (!cinterface_render_bga)
+  {
+    memset(&linebuf[1][0], 0, 512);
+  }
+  else if (a)
   {
     /* Plane A width */
     start = clip[0].left;
@@ -2288,7 +2342,7 @@ void render_bg_m5_im2(int line)
   }
 
   /* Window */
-  if (w)
+  if (w && cinterface_render_bgw)
   {
     /* Window name table */
     nt = (uint32 *)&vram[ntwb | ((line >> 3) << (6 + (reg[12] & 1)))];
@@ -2351,6 +2405,12 @@ void render_bg_m5_im2_vs(int line)
     yscroll = (vs[19] >> 1) & (vs[19] >> 17);
   }
 
+  if (!cinterface_render_bgb)
+  {
+    memset(&linebuf[0][0], 0, 512);
+    goto end_render_bgb;
+  }
+
   if(shift)
   {
     /* Plane B vertical scroll */
@@ -2393,6 +2453,8 @@ void render_bg_m5_im2_vs(int line)
     DRAW_COLUMN_IM2(atbuf, v_line)
   }
 
+end_render_bgb:
+
   if (w == (line >= a))
   {
     /* Window takes up entire line */
@@ -2407,7 +2469,11 @@ void render_bg_m5_im2_vs(int line)
   }
 
   /* Plane A */
-  if (a)
+  if (!cinterface_render_bga)
+  {
+    memset(&linebuf[1][0], 0, 512);
+  }
+  else if (a)
   {
     /* Plane A width */
     start = clip[0].left;
@@ -2479,7 +2545,7 @@ void render_bg_m5_im2_vs(int line)
   }
 
   /* Window */
-  if (w)
+  if (w && cinterface_render_bgw)
   {
     /* Window name table */
     nt = (uint32 *)&vram[ntwb | ((line >> 3) << (6 + (reg[12] & 1)))];

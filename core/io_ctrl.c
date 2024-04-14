@@ -451,6 +451,11 @@ unsigned int io_68k_read(unsigned int offset)
         D1 : D1 pin input level (1=high, 0=low)
         D0 : D0 pin input level (1=high, 0=low)
       */
+
+#ifdef USE_BIZHAWK_CALLBACKS
+      real_input_callback();
+#endif
+
       unsigned int mask = 0x80 | io_reg[offset + 3];
       unsigned int data = port[offset-1].data_r();
       return (io_reg[offset] & mask) | (data & ~mask);
@@ -530,6 +535,10 @@ unsigned int io_z80_read(unsigned int offset)
   /* I/O ports */
   if (offset)
   {
+#ifdef USE_BIZHAWK_CALLBACKS
+    real_input_callback(); 
+#endif
+
    /* 
      Bit  Function
      --------------
@@ -633,6 +642,10 @@ void io_gg_write(unsigned int offset, unsigned int data)
 
 unsigned int io_gg_read(unsigned int offset)
 {
+#ifdef USE_BIZHAWK_CALLBACKS
+  real_input_callback(); 
+#endif
+
   switch (offset)
   {
     case 0: /* Mode Register */

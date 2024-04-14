@@ -888,3 +888,8 @@ static void mapper_i2c_jcart_init(void)
   eeprom_i2c.sda_in_bit  = 0;
   eeprom_i2c.sda_out_bit = 7;
 }
+
+int eeprom_i2c_get_size(void)
+{
+  return eeprom_i2c.spec.size_mask + 1;
+}

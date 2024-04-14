@@ -863,7 +863,7 @@ INLINE uint m68ki_read_8(uint address)
 
 #ifdef HOOK_CPU
   if (UNLIKELY(cpu_hook))
-    cpu_hook(HOOK_M68K_R, 1, address, val);
+    val = cpu_hook(HOOK_M68K_R, 1, address, val);
 #endif
 
   return val;
@@ -883,7 +883,7 @@ INLINE uint m68ki_read_16(uint address)
 
 #ifdef HOOK_CPU
   if (UNLIKELY(cpu_hook))
-    cpu_hook(HOOK_M68K_R, 2, address, val);
+    val = cpu_hook(HOOK_M68K_R, 2, address, val);
 #endif
 
   return val;
@@ -907,7 +907,7 @@ INLINE uint m68ki_read_32(uint address)
 
 #ifdef HOOK_CPU
   if (UNLIKELY(cpu_hook))
-    cpu_hook(HOOK_M68K_R, 4, address, val);
+    val = cpu_hook(HOOK_M68K_R, 4, address, val);
 #endif
 
   return val;
@@ -921,12 +921,18 @@ INLINE void m68ki_write_8(uint address, uint value)
 
 #ifdef HOOK_CPU
   if (UNLIKELY(cpu_hook))
-    cpu_hook(HOOK_M68K_W, 1, address, value);
+    value = cpu_hook(HOOK_M68K_W, 1, address, value);
 #endif
 
   temp = &m68ki_cpu.memory_map[((address)>>16)&0xff];
   if (temp->write8) (*temp->write8)(ADDRESS_68K(address),value);
   else WRITE_BYTE(temp->base, (address) & 0xffff, value);
+
+#ifdef USE_RAM_DEEPFREEZE
+  if (UNLIKELY(deepfreeze_list_size))
+    for (int i = 0; i < deepfreeze_list_size; i++)
+      work_ram[deepfreeze_list[i].address] = deepfreeze_list[i].value;
+#endif
 }
 
 INLINE void m68ki_write_16(uint address, uint value)
@@ -938,12 +944,18 @@ INLINE void m68ki_write_16(uint address, uint value)
 
 #ifdef HOOK_CPU
   if (UNLIKELY(cpu_hook))
-    cpu_hook(HOOK_M68K_W, 2, address, value);
+    value = cpu_hook(HOOK_M68K_W, 2, address, value);
 #endif
 
   temp = &m68ki_cpu.memory_map[((address)>>16)&0xff];
   if (temp->write16) (*temp->write16)(ADDRESS_68K(address),value);
   else *(uint16 *)(temp->base + ((address) & 0xffff)) = value;
+
+#ifdef USE_RAM_DEEPFREEZE
+  if (UNLIKELY(deepfreeze_list_size))
+    for (int i = 0; i < deepfreeze_list_size; i++)
+      work_ram[deepfreeze_list[i].address] = deepfreeze_list[i].value;
+#endif
 }
 
 INLINE void m68ki_write_32(uint address, uint value)
@@ -955,7 +967,7 @@ INLINE void m68ki_write_32(uint address, uint value)
 
 #ifdef HOOK_CPU
   if (UNLIKELY(cpu_hook))
-    cpu_hook(HOOK_M68K_W, 4, address, value);
+    value = cpu_hook(HOOK_M68K_W, 4, address, value);
 #endif
 
   temp = &m68ki_cpu.memory_map[((address)>>16)&0xff];
@@ -965,6 +977,12 @@ INLINE void m68ki_write_32(uint address, uint value)
   temp = &m68ki_cpu.memory_map[((address + 2)>>16)&0xff];
   if (temp->write16) (*temp->write16)(ADDRESS_68K(address+2),value&0xffff);
   else *(uint16 *)(temp->base + ((address + 2) & 0xffff)) = value;
+
+#ifdef USE_RAM_DEEPFREEZE
+  if (UNLIKELY(deepfreeze_list_size))
+    for (int i = 0; i < deepfreeze_list_size; i++)
+      work_ram[deepfreeze_list[i].address] = deepfreeze_list[i].value;
+#endif
 }
 
 

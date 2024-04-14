@@ -2340,3 +2340,13 @@ static unsigned char read_mapper_none(unsigned int address)
   /* return last fetched z80 instruction / data */
   return z80_last_fetch;
 }
+
+int sms_cart_is_codies(void)
+{
+  return cart_rom.mapper == MAPPER_CODIES;
+}
+
+int sms_cart_bootrom_size(void)
+{
+  return bios_rom.pages << (bios_rom.mapper == MAPPER_SEGA ? 14 : 10);
+}

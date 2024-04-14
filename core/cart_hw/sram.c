@@ -39,6 +39,7 @@
 #include "shared.h"
 
 T_SRAM sram;
+extern int cinterface_force_sram;
 
 /****************************************************************************
  * A quick guide to external RAM on the Genesis
@@ -221,6 +222,7 @@ void sram_init(void)
     /* by default, enable backup RAM for ROM smaller than 2MB */
     else if (cart.romsize <= 0x200000)
     {
+      if (!cinterface_force_sram) return; /* BizHawk controls this default rather */
       /* 64KB static RAM mapped to $200000-$20ffff */
       sram.start = 0x200000;
       sram.end = 0x20ffff;
