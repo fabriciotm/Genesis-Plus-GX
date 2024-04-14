@@ -253,6 +253,12 @@ void s68k_run(unsigned int cycles)
     /* Set the address space for reads */
     m68ki_use_data_space() /* auto-disable (see m68kcpu.h) */
 
+    #ifdef HOOK_CPU
+        /* Trigger execution hook */
+        if (UNLIKELY(cpu_hook))
+          cpu_hook(HOOK_M68K_E, 0, REG_PC, 0);
+    #endif
+
     /* Save current instruction PC */
     s68k.prev_pc = REG_PC;
 
