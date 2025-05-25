@@ -117,7 +117,6 @@ typedef struct
   int scanOffset;
   uint16 fader[2];
   uint8 status;
-  uint8 pending;
   uint16 sectorSize;
   toc_t toc;
 #if defined(USE_LIBCHDR)
