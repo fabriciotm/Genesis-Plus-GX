@@ -70,7 +70,7 @@
    on other memory access if needed.
  * NOTE: This is only emulated properly for 68000 mode.
  */
-#define M68K_CHECK_PC_ADDRESS_ERROR OPT_OFF
+#define M68K_CHECK_PC_ADDRESS_ERROR OPT_ON
 
 
 /* ----------------------------- COMPATIBILITY ---------------------------- */
