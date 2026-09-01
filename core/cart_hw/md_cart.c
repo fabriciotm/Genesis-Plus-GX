@@ -47,6 +47,7 @@
 #include "flash_cfi.h"
 #include "yx5200.h"
 #include "megasd.h"
+#include "meganet.h"
 
 /* Cart database entry */
 typedef struct
@@ -153,7 +154,7 @@ static const md_entry_t rom_database[] =
 /* Super King Kong 99 */
   {0x0000,0x7d6e,0x60,0x7f,{{0x00,0x00,0x00,0x00},{0xf00007,0xf00007,0xf00007,0xffffff},{0x600001,0x600003,0x600005,0x000000},0,1,NULL,m68k_unused_8_w,default_regs_r,custom_regs_w}},
 /* Gunfight 3-in-1 */
-  {0x0000,0x6ff8,0x60,0x7f,{{0x00,0x00,0x00,0x00},{0xf00007,0xf00007,0xf00007,0xffffff},{0x600001,0x600003,0x600005,0x000000},0,1,NULL,m68k_unused_8_w,default_regs_r,custom_regs_w}}, 
+  {0x0000,0x6ff8,0x60,0x7f,{{0x00,0x00,0x00,0x00},{0xf00007,0xf00007,0xf00007,0xffffff},{0x600001,0x600003,0x600005,0x000000},0,1,NULL,m68k_unused_8_w,default_regs_r,custom_regs_w}},
 /* Pokemon Stadium */
   {0x0000,0x843c,0x70,0x7f,{{0x00,0x00,0x00,0x00},{0xffffff,0xffffff,0xffffff,0xffffff},{0x000000,0x000000,0x000000,0x000000},0,1,NULL,m68k_unused_8_w,NULL,custom_regs_w}},
 
@@ -276,7 +277,7 @@ static const md_entry_t rom_database[] =
 
 
 /************************************************************
-          Cart Hardware initialization 
+          Cart Hardware initialization
 *************************************************************/
 
 void md_cart_init(void)
@@ -284,9 +285,9 @@ void md_cart_init(void)
   int i;
 
   /***************************************************************************************************************
-                CARTRIDGE ROM MIRRORING                                                                                   
+                CARTRIDGE ROM MIRRORING
    ***************************************************************************************************************
-  
+
     MD Cartridge area is mapped to $000000-$3fffff:
 
       -> when accessing ROM, 68k address lines A1 to A21 can be used by the internal cartridge hardware to decode
@@ -322,7 +323,7 @@ void md_cart_init(void)
       2/ total ROM size is not a factor of 2: ROM is padded up to 2^k then mirrored each 2^k bytes.
 
   ******************************************************************************************************************/
-  
+
   /* calculate nearest size with factor of 2 */
   unsigned int size = 0x10000;
   while (cart.romsize > size)
@@ -358,7 +359,7 @@ void md_cart_init(void)
   cart.special = 0;
 
   /**********************************************
-          DEFAULT CARTRIDGE MAPPING 
+          DEFAULT CARTRIDGE MAPPING
   ***********************************************/
   for (i=0; i<0x40; i++)
   {
@@ -403,7 +404,7 @@ void md_cart_init(void)
   }
 
   /**********************************************
-          BACKUP MEMORY 
+          BACKUP MEMORY
   ***********************************************/
   sram_init();
   eeprom_i2c_init();
@@ -447,7 +448,7 @@ void md_cart_init(void)
     {
       /* $000000-$1fffff: cartridge ROM (lower 2MB) */
       /* $200000-$2fffff: SRAM (32KB mirrored) */
-      /* NB: existing 4MB ROM dumps include SRAM data at ROM offsets 0x200000-0x2fffff */ 
+      /* NB: existing 4MB ROM dumps include SRAM data at ROM offsets 0x200000-0x2fffff */
       for (i=0x20; i<0x30; i++)
       {
         m68k.memory_map[i].base    = sram.sram;
@@ -472,7 +473,7 @@ void md_cart_init(void)
   }
 
   /**********************************************
-          SVP CHIP 
+          SVP CHIP
   ***********************************************/
   svp = NULL;
   if ((READ_BYTE(cart.rom, 0x1c8) == 'S') && (READ_BYTE(cart.rom, 0x1c9) == 'V'))
@@ -544,7 +545,7 @@ void md_cart_init(void)
            strstr(rominfo.international,"ASTEBROS") ||
            strstr(rominfo.domestic,"DAEMON CLAW"))
   {
-    /* default SSF2+SRAM mapper (fixes patched versions incorrectly indicating Everdrive extended SSF mapper in ROM header) */ 
+    /* default SSF2+SRAM mapper (fixes patched versions incorrectly indicating Everdrive extended SSF mapper in ROM header) */
     cart.hw.time_w = default_time_w;
   }
   else if (strstr(rominfo.consoletype,"SEGA SSF"))
@@ -677,7 +678,7 @@ void md_cart_init(void)
     zbank_memory_map[0x00].read   = mapper_flash_r8;
     zbank_memory_map[0x00].write  = mapper_flash_w8;
   }
-  else if (strstr(rominfo.ROMType,"GM") && strstr(rominfo.product,"00000000-00") && 
+  else if (strstr(rominfo.ROMType,"GM") && strstr(rominfo.product,"00000000-00") &&
            (((rominfo.checksum == 0xcdf5) && (rominfo.realchecksum == 0x603a)) || /* Life on Mars */
             ((rominfo.checksum == 0x6bd5) && (rominfo.realchecksum == 0x1fea))))  /* Life on Earth Reimagined */
   {
@@ -694,10 +695,10 @@ void md_cart_init(void)
     zbank_memory_map[0x00].read   = zbank_memory_map[0x3f].read   = mapper_flash_r8;
     zbank_memory_map[0x00].write  = zbank_memory_map[0x3f].write  = mapper_flash_w8;
   }
-  else if (strstr(rominfo.ROMType,"GM") && strstr(rominfo.product,"00000000-00") && 
+  else if (strstr(rominfo.ROMType,"GM") && strstr(rominfo.product,"00000000-00") &&
            (((rominfo.checksum == 0x45c1) && (rominfo.realchecksum == 0xc613))))  /*  The Secret Of The Four Winds */
   {
-    /* KAISER WAVE board !TIME handler */ 
+    /* KAISER WAVE board !TIME handler */
     cart.hw.time_w = mapper_kaiserwave_w;
 
     /* enable YX5200 hardware */
@@ -733,7 +734,7 @@ void md_cart_init(void)
       zbank_memory_map[i].write   = NULL;
     }
   }
-  else if ((cart.romsize == 0x400000) && 
+  else if ((cart.romsize == 0x400000) &&
            (READ_BYTE(cart.rom, 0x200150) == 'C') &&
            (READ_BYTE(cart.rom, 0x200151) == 'A') &&
            (READ_BYTE(cart.rom, 0x200152) == 'N') &&
@@ -803,7 +804,7 @@ void md_cart_init(void)
   }
 
   /**********************************************
-          LOCK-ON 
+          LOCK-ON
   ***********************************************/
 
   /* clear existing patches */
@@ -896,12 +897,18 @@ void md_cart_init(void)
     /* initialize PCM and CD-DA audio */
     audio_set_rate(snd.sample_rate, snd.frame_rate);
   }
+
+  /* Install last so page $20 wins over generic cartridge/add-on mappings. */
+  meganet_modem_install();
 }
 
 /* hardware that need to be reseted on power on */
 void md_cart_reset(int hard_reset)
 {
   int i;
+
+  /* Deterministic internal state only; no host resources are touched. */
+  meganet_modem_reset();
 
   /* Realtec mapper */
   if (cart.hw.realtec)
@@ -1116,10 +1123,10 @@ int md_cart_context_load(uint8 *state)
 }
 
 /************************************************************
-          MAPPER handlers 
+          MAPPER handlers
 *************************************************************/
 
-/* 
+/*
   "official" ROM/SRAM bankswitch (Phantasy Star IV, Story of Thor/Beyond Oasis, Sonic 3 & Knuckles)
 */
 static void mapper_sega_w(uint32 data)
@@ -1198,7 +1205,7 @@ static void mapper_sega_w(uint32 data)
 
 /*
    Everdrive extended SSF ROM bankswitch
-   documented by Krikzz (http://krikzz.com/pub/support/mega-ed/dev/extended_ssf.txt) 
+   documented by Krikzz (http://krikzz.com/pub/support/mega-ed/dev/extended_ssf.txt)
 */
 static void mapper_512k_w(uint32 address, uint32 data)
 {
@@ -1209,7 +1216,7 @@ static void mapper_512k_w(uint32 address, uint32 data)
 
   /* cartridge area ($000000-$3FFFFF) is divided into 8 x 512K banks */
   address = (address << 2) & 0x38;
-  
+
   /* remap selected ROM page to selected bank */
   for (i=0; i<8; i++)
   {
@@ -1219,7 +1226,7 @@ static void mapper_512k_w(uint32 address, uint32 data)
 
 /*
    Super Street Fighter 2 ROM bankswitch
-   documented by Bart Trzynadlowski (http://emu-docs.org/Genesis/ssf2.txt) 
+   documented by Bart Trzynadlowski (http://emu-docs.org/Genesis/ssf2.txt)
 */
 static void mapper_ssf2_w(uint32 address, uint32 data)
 {
@@ -1230,7 +1237,7 @@ static void mapper_ssf2_w(uint32 address, uint32 data)
   }
 }
 
-/* 
+/*
   SF-001 mapper
 */
 static void mapper_sf001_w(uint32 address, uint32 data)
@@ -1326,7 +1333,7 @@ static void mapper_sf001_w(uint32 address, uint32 data)
   }
 }
 
-/* 
+/*
   SF-002 mapper
 */
 static void mapper_sf002_w(uint32 address, uint32 data)
@@ -1350,7 +1357,7 @@ static void mapper_sf002_w(uint32 address, uint32 data)
   }
 }
 
-/* 
+/*
   SF-004 mapper
 */
 static void mapper_sf004_w(uint32 address, uint32 data)
@@ -1491,7 +1498,7 @@ static uint32 mapper_sf004_r(uint32 address)
   return (((m68k.memory_map[0x00].base - cart.rom) >> 18) << 4);
 }
 
-/* 
+/*
   T-5740xx-xx mapper
 */
 static void mapper_t5740_w(uint32 address, uint32 data)
@@ -1573,7 +1580,7 @@ static uint32 mapper_t5740_r(uint32 address)
   return READ_BYTE(cart.rom, address);
 }
 
-/* 
+/*
   Flash memory mappers
 */
 static void mapper_flash_w8(uint32 address, uint32 data)
@@ -1605,7 +1612,7 @@ static uint32 mapper_flash_r16(uint32 address)
   return flash_cfi_read(address >> 1);;
 }
 
-/* 
+/*
   KAISER WAVE board mapper
 */
 static void mapper_kaiserwave_w(uint32 address, uint32 data)
@@ -1621,8 +1628,8 @@ static void mapper_kaiserwave_w(uint32 address, uint32 data)
     m68k_unused_8_w(address, data);
   }
 }
- 
-/* 
+
+/*
   Super Mario World 64 (unlicensed) mapper
 */
 static void mapper_smw_64_w(uint32 address, uint32 data)
@@ -1789,7 +1796,7 @@ static uint32 mapper_smw_64_r(uint32 address)
   }
 }
 
-/* 
+/*
   Realtec ROM bankswitch (Earth Defend, Balloon Boy & Funny World, Whac-A-Critter, Tom Clown)
   Verified with real cartridge hardware (slightly different from behavior described in TascoDlx documentation)
 */
@@ -1797,7 +1804,7 @@ static void mapper_realtec_w(uint32 address, uint32 data)
 {
   switch (address)
   {
-    case 0x402000: 
+    case 0x402000:
     {
       /* fixed ROM bank size */
       /* when bit 0 is set, ROM A16 pin is forced to value configured in register below (connected to VA17 otherwise) */
@@ -1807,7 +1814,7 @@ static void mapper_realtec_w(uint32 address, uint32 data)
       return;
     }
 
-    case 0x404000: 
+    case 0x404000:
     {
       /* fixed ROM bank selection (4 x 128KB banks) */
       /* bit 0 corresponds to ROM A16 pin value when forced */
@@ -1817,7 +1824,7 @@ static void mapper_realtec_w(uint32 address, uint32 data)
       return;
     }
 
-    case 0x400000:  
+    case 0x400000:
     {
       /* ROM access enable */
       /* when bit 0 is set, ROM A17/A16 pins are set according to above registers and ROM A15/A12 pins are connected to VA16-VA13 (forced to 1 on reset) */
@@ -1889,13 +1896,13 @@ static void mapper_seganet_w(uint32 address, uint32 data)
   }
 }
 
-/* 
+/*
   Custom ROM Bankswitch used in Soul Edge VS Samurai Spirits, Top Fighter, Mulan, Pocket Monsters II, Lion King 3, Super King Kong 99, Pokemon Stadium
 */
 static void mapper_32k_w(uint32 data)
 {
   int i;
-  
+
   /* 64 x 32k banks */
   if (data)
   {
@@ -1919,7 +1926,7 @@ static void mapper_32k_w(uint32 data)
   }
 }
 
-/* 
+/*
   Custom ROM Bankswitch used in Chinese Fighter III
 */
 static void mapper_64k_w(uint32 data)
@@ -1945,7 +1952,7 @@ static void mapper_64k_w(uint32 data)
   }
 }
 
-/* 
+/*
   Custom ROM Bankswitch used in pirate "Multi-in-1" cartridges, A Bug's Life, King of Fighter 99, Pocket Monster, Rockman X3
  */
 static void mapper_64k_multi_w(uint32 address)
@@ -1959,7 +1966,7 @@ static void mapper_64k_multi_w(uint32 address)
   }
 }
 
-/* 
+/*
   Custom ROM Bankswitch used in pirate "1800-in-1" cartridge
  */
 static uint32 mapper_128k_multi_r(uint32 address)
@@ -1997,7 +2004,7 @@ static uint32 mapper_128k_multi_r(uint32 address)
   return 0x03;
 }
 
-/* 
+/*
   Custom ROM Bankswitch used in pirate "Golden Mega 250-in-1" cartridge
  */
 static void mapper_256k_multi_w(uint32 address, uint32 data)
@@ -2022,8 +2029,8 @@ static void mapper_256k_multi_w(uint32 address, uint32 data)
   }
 }
 
-/* 
-  Custom ROM Bankswitch used in "Canon - Legend of the New Gods" 
+/*
+  Custom ROM Bankswitch used in "Canon - Legend of the New Gods"
   (uses WD1601 QFPL V1.01 board also used in chinese X-in-1 pirates sold by mindkids)
  */
 static void mapper_wd1601_w(uint32 address, uint32 data)
@@ -2133,7 +2140,7 @@ static uint32 mapper_128k_radica_r(uint32 address)
     200000h-37ffffh: Cannon Fodder                   : !TIME read16 0xA13042 (00FF1012)
     380000h-3fffffh: N/A                             : N/A
 
-    Note: address bit 1 is ignored for bank selection but might be used to enable/disable SRAM mapping ? 
+    Note: address bit 1 is ignored for bank selection but might be used to enable/disable SRAM mapping ?
   */
   int index = (address >> 1) & 0x3E;
 
@@ -2162,7 +2169,7 @@ static uint32 mapper_128k_radica_r(uint32 address)
 /*
   Custom logic (ST 16S25HB1 PAL) used in Micro Machines USA cartridge (SR16V1.1 board)
   ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   /VRES is asserted to bypass TMSS security checks when write access to 0xA141xx 
+   /VRES is asserted to bypass TMSS security checks when write access to 0xA141xx
    with D0=1 is detected (access to cartridge ROM enabled instead of TMSS Boot ROM)
 */
 static void mapper_sr16v1_w(uint32 address, uint32 data)
@@ -2183,7 +2190,7 @@ static void mapper_sr16v1_w(uint32 address, uint32 data)
 }
 
 /************************************************************
-          default !TIME signal handler 
+          default !TIME signal handler
 *************************************************************/
 
 static void default_time_w(uint32 address, uint32 data)
@@ -2274,7 +2281,7 @@ static uint32 custom_regs_r(uint32 address)
 static void custom_regs_w(uint32 address, uint32 data)
 {
   uint8 temp;
-  
+
   /* ROM bankswitch */
   if ((address >> 16) > 0x6f)
   {
@@ -2348,25 +2355,25 @@ static void tekken_regs_w(uint32 address, uint32 data)
       cart.hw.regs[0]= 0x00;
       break;
     }
-  
+
     case 0x02:
     {
       /* read only ? */
       break;
     }
-  
+
     case 0x0c:
     {
       /* data output mode bit 0 ? (game writes $01) */
       break;
     }
-  
+
     case 0x0e:
     {
       /* data output mode bit 1 ? (never written by game) */
       break;
     }
-  
+
     default:
     {
       /* data input (only connected to D0 ?)*/
@@ -2448,9 +2455,9 @@ static void topshooter_w(uint32 address, uint32 data)
 
 
 /* Sega Channel hardware (not emulated) */
-/* 
+/*
 
-$A13004: BUSY ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 
+$A13004: BUSY ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?
 
 Unused read16 00A13004 (00005B54)
 Unused read16 00A13004 (00005B70)
